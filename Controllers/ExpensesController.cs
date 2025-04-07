@@ -23,16 +23,25 @@ namespace ExpenseManager.Controllers
 
         // GET: Expenses
         public async Task<IActionResult> Index()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var isManager = User.IsInRole("Manager");
-            
-            var expenses = isManager 
-                ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
-                : _context.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
-                
-            return View(await expenses.OrderByDescending(e => e.CreatedAt).ToListAsync());
-        }
+{
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var isManager = User.IsInRole("Manager");
+    
+    // Add debug logging
+    Console.WriteLine($"Index method called. User ID: {userId}, IsManager: {isManager}");
+    
+    // For managers, show all expenses. For employees, only show their own
+    var expenses = isManager 
+        ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
+        : _context.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
+        
+    var expenseList = await expenses.OrderByDescending(e => e.CreatedAt).ToListAsync();
+    
+    // Debug logging
+    Console.WriteLine($"Found {expenseList.Count} expenses");
+    
+    return View(expenseList);
+}
 
         // GET: Expenses/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -73,28 +82,60 @@ namespace ExpenseManager.Controllers
         }
 
         // POST: Expenses/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,CategoryId")] Expense expense)
-        {
-            if (ModelState.IsValid)
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                expense.UserId = userId;
-                expense.Status = ExpenseStatus.Pending;
-                expense.CreatedAt = DateTime.UtcNow;
-        
-                 _context.Add(expense);
-                await _context.SaveChangesAsync();
-        
-                TempData["SuccessMessage"] = "Expense created successfully!";
-                return RedirectToAction(nameof(Index));
-            }
+        // POST: Expenses/Create
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,CategoryId")] Expense expense)
+{
+    Console.WriteLine("Create POST method called with modified controller");
+    Console.WriteLine($"Expense details: Title={expense.Title}, Amount={expense.Amount}, CategoryId={expense.CategoryId}");
+
+    // Explicitly set the UserId from the currently logged in user
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    Console.WriteLine($"Current user ID: {userId}");
     
-             // If we got this far, something failed, redisplay form
-            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
-            return View(expense);
+    // Manually set properties not in the form
+    expense.UserId = userId;
+    expense.Status = ExpenseStatus.Pending;
+    expense.CreatedAt = DateTime.Now;
+    
+    // Skip model validation for UserId since we're setting it manually
+    ModelState.Remove("UserId");
+    
+    if (ModelState.IsValid)
+    {
+        try 
+        {
+            Console.WriteLine("ModelState is valid, adding expense to context");
+            _context.Add(expense);
+            
+            Console.WriteLine("Saving changes to database");
+            await _context.SaveChangesAsync();
+            
+            Console.WriteLine("Expense saved successfully!");
+            return RedirectToAction(nameof(Index));
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving expense: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            ModelState.AddModelError("", "An error occurred while saving the expense.");
+        }
+    }
+    else
+    {
+        foreach (var state in ModelState)
+        {
+            if (state.Value.Errors.Any())
+            {
+                Console.WriteLine($"Error in {state.Key}: {string.Join(", ", state.Value.Errors.Select(e => e.ErrorMessage))}");
+            }
+        }
+    }
+    
+    ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
+    return View(expense);
+}
 
         // GET: Expenses/Edit/5
         public async Task<IActionResult> Edit(int? id)
