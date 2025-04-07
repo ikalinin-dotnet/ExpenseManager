@@ -32,89 +32,104 @@ namespace ExpenseManager.Controllers
             
             var viewModel = new ExpenseSummaryViewModel();
             
-            if (isManager)
-            {
-                // For managers, show summary of all expenses
-                viewModel.TotalAmount = await _context.Expenses.SumAsync(e => e.Amount);
-                viewModel.ApprovedAmount = await _context.Expenses
-                    .Where(e => e.Status == ExpenseStatus.Approved)
-                    .SumAsync(e => e.Amount);
-                viewModel.RejectedAmount = await _context.Expenses
-                    .Where(e => e.Status == ExpenseStatus.Rejected)
-                    .SumAsync(e => e.Amount);
-                viewModel.PendingAmount = await _context.Expenses
-                    .Where(e => e.Status == ExpenseStatus.Pending)
-                    .SumAsync(e => e.Amount);
-                    
-                // Calculate expenses by category
-                viewModel.ExpensesByCategory = await _context.Expenses
-                    .Include(e => e.Category)
-                    .GroupBy(e => e.Category.Name)
-                    .Select(g => new CategorySummary 
-                    { 
-                        CategoryName = g.Key, 
-                        Amount = g.Sum(e => e.Amount) 
-                    })
-                    .OrderByDescending(x => x.Amount)
-                    .ToListAsync();
-                    
-                // Calculate expenses by month
-                viewModel.ExpensesByMonth = await _context.Expenses
-                    .GroupBy(e => new { Month = e.Date.Month, Year = e.Date.Year })
-                    .Select(g => new MonthSummary 
-                    { 
-                        Month = g.Key.Month,
-                        Year = g.Key.Year,
-                        Amount = g.Sum(e => e.Amount) 
-                    })
-                    .OrderBy(x => x.Year)
-                    .ThenBy(x => x.Month)
-                    .ToListAsync();
-            }
-            else
-            {
-                // For employees, show summary of only their expenses
-                viewModel.TotalAmount = await _context.Expenses
-                    .Where(e => e.UserId == userId)
-                    .SumAsync(e => e.Amount);
-                viewModel.ApprovedAmount = await _context.Expenses
-                    .Where(e => e.UserId == userId && e.Status == ExpenseStatus.Approved)
-                    .SumAsync(e => e.Amount);
-                viewModel.RejectedAmount = await _context.Expenses
-                    .Where(e => e.UserId == userId && e.Status == ExpenseStatus.Rejected)
-                    .SumAsync(e => e.Amount);
-                viewModel.PendingAmount = await _context.Expenses
-                    .Where(e => e.UserId == userId && e.Status == ExpenseStatus.Pending)
-                    .SumAsync(e => e.Amount);
-                    
-                // Calculate expenses by category
-                viewModel.ExpensesByCategory = await _context.Expenses
-                    .Where(e => e.UserId == userId)
-                    .Include(e => e.Category)
-                    .GroupBy(e => e.Category.Name)
-                    .Select(g => new CategorySummary 
-                    { 
-                        CategoryName = g.Key, 
-                        Amount = g.Sum(e => e.Amount) 
-                    })
-                    .OrderByDescending(x => x.Amount)
-                    .ToListAsync();
-                    
-                // Calculate expenses by month
-                viewModel.ExpensesByMonth = await _context.Expenses
-                    .Where(e => e.UserId == userId)
-                    .GroupBy(e => new { Month = e.Date.Month, Year = e.Date.Year })
-                    .Select(g => new MonthSummary 
-                    { 
-                        Month = g.Key.Month,
-                        Year = g.Key.Year,
-                        Amount = g.Sum(e => e.Amount) 
-                    })
-                    .OrderBy(x => x.Year)
-                    .ThenBy(x => x.Month)
-                    .ToListAsync();
-            }
+            // Fetch all expenses based on role
+            var expensesQuery = isManager 
+                ? _context.Expenses.Include(e => e.Category)
+                : _context.Expenses.Where(e => e.UserId == userId).Include(e => e.Category);
+
+            var expenses = await expensesQuery.ToListAsync();
             
+            // Calculate totals using in-memory LINQ and casting
+            viewModel.TotalAmount = expenses.Sum(e => e.Amount);
+            viewModel.ApprovedAmount = expenses
+                .Where(e => e.Status == ExpenseStatus.Approved)
+                .Sum(e => e.Amount);
+            viewModel.RejectedAmount = expenses
+                .Where(e => e.Status == ExpenseStatus.Rejected)
+                .Sum(e => e.Amount);
+            viewModel.PendingAmount = expenses
+                .Where(e => e.Status == ExpenseStatus.Pending)
+                .Sum(e => e.Amount);
+                
+            // Calculate expenses by category
+            viewModel.ExpensesByCategory = expenses
+                .GroupBy(e => e.Category.Name)
+                .Select(g => new CategorySummary 
+                { 
+                    CategoryName = g.Key, 
+                    Amount = g.Sum(e => e.Amount)
+                })
+                .OrderByDescending(x => x.Amount)
+                .ToList();
+                
+            // Calculate expenses by month
+            viewModel.ExpensesByMonth = expenses
+                .GroupBy(e => new { Month = e.Date.Month, Year = e.Date.Year })
+                .Select(g => new MonthSummary 
+                { 
+                    Month = g.Key.Month,
+                    Year = g.Key.Year,
+                    Amount = g.Sum(e => e.Amount)
+                })
+                .OrderBy(x => x.Year)
+                .ThenBy(x => x.Month)
+                .ToList();
+            
+            return View(viewModel);
+        }
+
+        // GET: Reports/CategoryDetails
+        public async Task<IActionResult> CategoryDetails(string categoryName)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isManager = User.IsInRole("Manager");
+
+            var query = isManager
+                ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
+                : _context.Expenses.Where(e => e.UserId == userId)
+                    .Include(e => e.Category)
+                    .Include(e => e.User);
+
+            var categoryExpenses = await query
+                .Where(e => e.Category.Name == categoryName)
+                .OrderByDescending(e => e.Date)
+                .ToListAsync();
+
+            var viewModel = new CategoryDetailsViewModel
+            {
+                CategoryName = categoryName,
+                Expenses = categoryExpenses,
+                TotalAmount = categoryExpenses.Sum(e => e.Amount)
+            };
+
+            return View(viewModel);
+        }
+
+        // GET: Reports/MonthlyDetails
+        public async Task<IActionResult> MonthlyDetails(int year, int month)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isManager = User.IsInRole("Manager");
+
+            var query = isManager
+                ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
+                : _context.Expenses.Where(e => e.UserId == userId)
+                    .Include(e => e.Category)
+                    .Include(e => e.User);
+
+            var monthExpenses = await query
+                .Where(e => e.Date.Year == year && e.Date.Month == month)
+                .OrderByDescending(e => e.Date)
+                .ToListAsync();
+
+            var viewModel = new MonthlyDetailsViewModel
+            {
+                Year = year,
+                Month = month,
+                Expenses = monthExpenses,
+                TotalAmount = monthExpenses.Sum(e => e.Amount)
+            };
+
             return View(viewModel);
         }
     }
