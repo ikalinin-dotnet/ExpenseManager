@@ -1,0 +1,51 @@
+@model ExpenseManager.Models.Expense
+@{
+    ViewData["Title"] = "Approve Expense";
+}
+
+<h1>Approve Expense</h1>
+
+<div class="alert alert-info">
+    <p>Are you sure you want to approve this expense?</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">@Model.Title</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Submitted By</dt>
+                    <dd class="col-sm-8">@Model.User.FullName</dd>
+                    
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Model.Category.Name</dd>
+                    
+                    <dt class="col-sm-4">Amount</dt>
+                    <dd class="col-sm-8">@Model.Amount.ToString("C")</dd>
+                    
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">@Model.Date.ToShortDateString()</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Submitted On</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt.ToString("g")</dd>
+                    
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Description</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <form asp-action="ApproveConfirmed" method="post">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-success">Approve Expense</button>
+            <a asp-action="Pending" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,59 @@
+@model ExpenseManager.Models.Expense
+@{
+    ViewData["Title"] = "Reject Expense";
+}
+
+<h1>Reject Expense</h1>
+
+<div class="alert alert-warning">
+    <p>Are you sure you want to reject this expense?</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">@Model.Title</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Submitted By</dt>
+                    <dd class="col-sm-8">@Model.User.FullName</dd>
+                    
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Model.Category.Name</dd>
+                    
+                    <dt class="col-sm-4">Amount</dt>
+                    <dd class="col-sm-8">@Model.Amount.ToString("C")</dd>
+                    
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">@Model.Date.ToShortDateString()</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Submitted On</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt.ToString("g")</dd>
+                    
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Description</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <form asp-action="RejectConfirmed" method="post">
+            <input type="hidden" name="id" value="@Model.Id" />
+            
+            <div class="mb-3">
+                <label for="rejectionReason" class="form-label">Reason for Rejection</label>
+                <textarea name="rejectionReason" id="rejectionReason" class="form-control" rows="3" required></textarea>
+                <div class="form-text">Please provide a detailed explanation for why this expense is being rejected.</div>
+            </div>
+            
+            <div class="mb-3">
+                <button type="submit" class="btn btn-danger">Reject Expense</button>
+                <a asp-action="Pending" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

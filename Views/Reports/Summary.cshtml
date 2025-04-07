@@ -1,0 +1,135 @@
+@model ExpenseSummaryViewModel
+@{
+    ViewData["Title"] = "Expense Summary";
+}
+
+<h1>Expense Summary</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total</h5>
+                <p class="card-text display-6">@Model.TotalAmount.ToString("C")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Approved</h5>
+                <p class="card-text display-6">@Model.ApprovedAmount.ToString("C")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Pending</h5>
+                <p class="card-text display-6">@Model.PendingAmount.ToString("C")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">Rejected</h5>
+                <p class="card-text display-6">@Model.RejectedAmount.ToString("C")</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Expenses by Category</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.ExpensesByCategory.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var category in Model.ExpensesByCategory)
+                                {
+                                    <tr>
+                                        <td>@category.CategoryName</td>
+                                        <td>@category.Amount.ToString("C")</td>
+                                        <td>
+                                            @(Model.TotalAmount > 0 ? Math.Round((category.Amount / Model.TotalAmount) * 100, 1) : 0)%
+                                            <div class="progress">
+                                                <div class="progress-bar" role="progressbar" 
+                                                    style="width: @(Model.TotalAmount > 0 ? Math.Round((category.Amount / Model.TotalAmount) * 100, 1) : 0)%" 
+                                                    aria-valuenow="@(Model.TotalAmount > 0 ? Math.Round((category.Amount / Model.TotalAmount) * 100, 1) : 0)" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No expense data available.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Expenses by Month</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.ExpensesByMonth.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Amount</th>
+                                    <th>Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var month in Model.ExpensesByMonth.OrderByDescending(m => m.Year).ThenByDescending(m => m.Month))
+                                {
+                                    <tr>
+                                        <td>@month.MonthYear</td>
+                                        <td>@month.Amount.ToString("C")</td>
+                                        <td>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-info" role="progressbar" 
+                                                    style="width: @(Model.ExpensesByMonth.Max(m => m.Amount) > 0 ? Math.Round((month.Amount / Model.ExpensesByMonth.Max(m => m.Amount)) * 100, 1) : 0)%" 
+                                                    aria-valuenow="@(Model.ExpensesByMonth.Max(m => m.Amount) > 0 ? Math.Round((month.Amount / Model.ExpensesByMonth.Max(m => m.Amount)) * 100, 1) : 0)" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">No expense data available.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

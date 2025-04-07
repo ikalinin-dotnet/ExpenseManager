@@ -1,8 +1,175 @@
-﻿@{
+﻿<!-- Views/Home/Index.cshtml -->
+@model DashboardViewModel
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@if (User.Identity.IsAuthenticated)
+{
+    <h1 class="display-4 mb-4">Dashboard</h1>
+    
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <p class="card-text display-4">@Model.TotalExpenses</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Pending</h5>
+                    <p class="card-text display-4">@Model.PendingCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Approved</h5>
+                    <p class="card-text display-4">@Model.ApprovedCount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Rejected</h5>
+                    <p class="card-text display-4">@Model.RejectedCount</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        @if (User.IsInRole("Manager"))
+        {
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Pending Expenses</h5>
+                        <a asp-controller="Expenses" asp-action="Pending" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.PendingExpenses.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Submitted By</th>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Amount</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var expense in Model.PendingExpenses)
+                                        {
+                                            <tr>
+                                                <td>@expense.User.FullName</td>
+                                                <td>@expense.Title</td>
+                                                <td>@expense.Category.Name</td>
+                                                <td>@expense.Amount.ToString("C")</td>
+                                                <td>@expense.Date.ToShortDateString()</td>
+                                                <td>
+                                                    <a asp-controller="Expenses" asp-action="Approve" asp-route-id="@expense.Id" class="btn btn-sm btn-success">Approve</a>
+                                                    <a asp-controller="Expenses" asp-action="Reject" asp-route-id="@expense.Id" class="btn btn-sm btn-danger">Reject</a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No pending expenses to display.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">My Recent Expenses</h5>
+                        <a asp-controller="Expenses" asp-action="Index" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.UserExpenses.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Amount</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var expense in Model.UserExpenses)
+                                        {
+                                            <tr>
+                                                <td>@expense.Title</td>
+                                                <td>@expense.Category.Name</td>
+                                                <td>@expense.Amount.ToString("C")</td>
+                                                <td>@expense.Date.ToShortDateString()</td>
+                                                <td>
+                                                    @switch (expense.Status)
+                                                    {
+                                                        case ExpenseStatus.Pending:
+                                                            <span class="badge bg-warning">Pending</span>
+                                                            break;
+                                                        case ExpenseStatus.Approved:
+                                                            <span class="badge bg-success">Approved</span>
+                                                            break;
+                                                        case ExpenseStatus.Rejected:
+                                                            <span class="badge bg-danger">Rejected</span>
+                                                            break;
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <a asp-controller="Expenses" asp-action="Details" asp-route-id="@expense.Id" class="btn btn-sm btn-info">Details</a>
+                                                    @if (expense.Status == ExpenseStatus.Pending)
+                                                    {
+                                                        <a asp-controller="Expenses" asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-sm btn-primary">Edit</a>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No expenses to display. <a asp-controller="Expenses" asp-action="Create">Create your first expense</a>.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center">
+        <h1 class="display-4">Welcome to Expense Manager</h1>
+        <p class="lead">A simple tool to manage and track your business expenses.</p>
+        <div class="mt-4">
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg mx-2">Register</a>
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-lg mx-2">Login</a>
+        </div>
+    </div>
+}

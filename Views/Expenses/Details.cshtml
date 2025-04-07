@@ -1,0 +1,67 @@
+@model ExpenseManager.Models.Expense
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Expense Details";
+}
+
+<h1>Expense Details</h1>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">@Model.Title</h5>
+        <span class="badge @(Model.Status == ExpenseStatus.Approved ? "bg-success" : Model.Status == ExpenseStatus.Rejected ? "bg-danger" : "bg-warning")">
+            @Model.Status
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Model.Category.Name</dd>
+                    
+                    <dt class="col-sm-4">Amount</dt>
+                    <dd class="col-sm-8">@Model.Amount.ToString("C")</dd>
+                    
+                    <dt class="col-sm-4">Date</dt>
+                    <dd class="col-sm-8">@Model.Date.ToShortDateString()</dd>
+                    
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@Model.Description</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">Submitted By</dt>
+                    <dd class="col-sm-8">@Model.User.FullName</dd>
+                    
+                    <dt class="col-sm-4">Submitted On</dt>
+                    <dd class="col-sm-8">@Model.CreatedAt.ToString("g")</dd>
+                    
+                    @if (Model.Status != ExpenseStatus.Pending)
+                    {
+                        <dt class="col-sm-4">Reviewed By</dt>
+                        <dd class="col-sm-8">@(Model.Approver?.FullName ?? "N/A")</dd>
+                        
+                        <dt class="col-sm-4">Reviewed On</dt>
+                        <dd class="col-sm-8">@(Model.UpdatedAt?.ToString("g") ?? "N/A")</dd>
+                        
+                        @if (Model.Status == ExpenseStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
+                        {
+                            <dt class="col-sm-4">Rejection Reason</dt>
+                            <dd class="col-sm-8">@Model.RejectionReason</dd>
+                        }
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+        @if (Model.Status == ExpenseStatus.Pending && Model.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier))
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+        }
+    </div>
+</div>

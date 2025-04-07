@@ -1,3 +1,4 @@
+/* wwwroot/css/site.css */
 html {
   font-size: 14px;
 }
@@ -19,4 +20,48 @@ html {
 
 body {
   margin-bottom: 60px;
+  background-color: #f8f9fa;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  white-space: nowrap;
+  line-height: 60px;
+}
+
+/* Custom styles for Expense Manager */
+.card {
+  margin-bottom: 20px;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.table th {
+  background-color: #f8f9fa;
+}
+
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+
+.progress {
+  height: 10px;
+  margin-top: 5px;
+}
+
+/* Dashboard styles */
+.dashboard-card {
+  height: 100%;
+  transition: transform 0.2s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
 }
