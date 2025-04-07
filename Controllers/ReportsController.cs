@@ -8,6 +8,9 @@ using ExpenseManager.ViewModels;
 
 namespace ExpenseManager.Controllers
 {
+    /// <summary>
+    /// Controller for expense reporting functionality.
+    /// </summary>
     [Authorize]
     public class ReportsController : Controller
     {
@@ -18,13 +21,19 @@ namespace ExpenseManager.Controllers
             _context = context;
         }
 
-        // GET: Reports
+        /// <summary>
+        /// Displays the reports index page with available report types.
+        /// </summary>
+        /// <returns>The reports index view.</returns>
         public IActionResult Index()
         {
             return View();
         }
         
-        // GET: Reports/Summary
+        /// <summary>
+        /// Displays a summary of expenses grouped by category and month.
+        /// </summary>
+        /// <returns>The summary view with expense data.</returns>
         public async Task<IActionResult> Summary()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -39,7 +48,7 @@ namespace ExpenseManager.Controllers
 
             var expenses = await expensesQuery.ToListAsync();
             
-            // Calculate totals using in-memory LINQ and casting
+            // Calculate totals using in-memory LINQ
             viewModel.TotalAmount = expenses.Sum(e => e.Amount);
             viewModel.ApprovedAmount = expenses
                 .Where(e => e.Status == ExpenseStatus.Approved)
@@ -53,7 +62,7 @@ namespace ExpenseManager.Controllers
                 
             // Calculate expenses by category
             viewModel.ExpensesByCategory = expenses
-                .GroupBy(e => e.Category.Name)
+                .GroupBy(e => e.Category?.Name ?? "Uncategorized")
                 .Select(g => new CategorySummary 
                 { 
                     CategoryName = g.Key, 
@@ -78,9 +87,18 @@ namespace ExpenseManager.Controllers
             return View(viewModel);
         }
 
-        // GET: Reports/CategoryDetails
+        /// <summary>
+        /// Displays detailed information about expenses in a specific category.
+        /// </summary>
+        /// <param name="categoryName">The name of the category to view details for.</param>
+        /// <returns>The category details view with related expenses.</returns>
         public async Task<IActionResult> CategoryDetails(string categoryName)
         {
+            if (string.IsNullOrEmpty(categoryName))
+            {
+                return BadRequest("Category name is required");
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isManager = User.IsInRole("Manager");
 
@@ -105,9 +123,24 @@ namespace ExpenseManager.Controllers
             return View(viewModel);
         }
 
-        // GET: Reports/MonthlyDetails
+        /// <summary>
+        /// Displays detailed information about expenses in a specific month and year.
+        /// </summary>
+        /// <param name="year">The year to filter expenses by.</param>
+        /// <param name="month">The month to filter expenses by (1-12).</param>
+        /// <returns>The monthly details view with related expenses.</returns>
         public async Task<IActionResult> MonthlyDetails(int year, int month)
         {
+            if (month < 1 || month > 12)
+            {
+                return BadRequest("Month must be between 1 and 12");
+            }
+
+            if (year < 2000 || year > 2100)
+            {
+                return BadRequest("Year must be between 2000 and 2100");
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isManager = User.IsInRole("Manager");
 

@@ -21,7 +21,10 @@ namespace ExpenseManager.Controllers
             _userManager = userManager;
         }
 
-        // GET: Expenses
+        /// <summary>
+        /// Displays a list of expenses for the current user.
+        /// Managers can see all expenses, while regular users see only their own.
+        /// </summary>
         public async Task<IActionResult> Index()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -37,7 +40,10 @@ namespace ExpenseManager.Controllers
             return View(expenseList);
         }
 
-        // GET: Expenses/Details/5
+        /// <summary>
+        /// Displays the details of a specific expense.
+        /// </summary>
+        /// <param name="id">The ID of the expense to view</param>
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -67,7 +73,9 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // GET: Expenses/Create
+        /// <summary>
+        /// Displays the expense creation form.
+        /// </summary>
         [HttpGet]
         public IActionResult Create()
         {
@@ -75,7 +83,10 @@ namespace ExpenseManager.Controllers
             return View();
         }
 
-        // POST: Expenses/Create
+        /// <summary>
+        /// Processes the expense creation form submission.
+        /// </summary>
+        /// <param name="expense">The expense data from the form</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,CategoryId")] Expense expense)
@@ -95,30 +106,15 @@ namespace ExpenseManager.Controllers
             {
                 try
                 {
-                    Console.WriteLine("ModelState is valid, adding expense to context");
                     _context.Add(expense);
-
-                    Console.WriteLine("Saving changes to database");
                     await _context.SaveChangesAsync();
-
-                    Console.WriteLine("Expense saved successfully!");
+                    
+                    TempData["SuccessMessage"] = "Expense created successfully!";
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error saving expense: {ex.Message}");
-                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
                     ModelState.AddModelError("", "An error occurred while saving the expense.");
-                }
-            }
-            else
-            {
-                foreach (var state in ModelState)
-                {
-                    if (state.Value.Errors.Any())
-                    {
-                        Console.WriteLine($"Error in {state.Key}: {string.Join(", ", state.Value.Errors.Select(e => e.ErrorMessage))}");
-                    }
                 }
             }
 
@@ -126,7 +122,10 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // GET: Expenses/Edit/5
+        /// <summary>
+        /// Displays the expense edit form.
+        /// </summary>
+        /// <param name="id">The ID of the expense to edit</param>
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -150,7 +149,11 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // POST: Expenses/Edit/5
+        /// <summary>
+        /// Processes the expense edit form submission.
+        /// </summary>
+        /// <param name="id">The ID of the expense to edit</param>
+        /// <param name="expense">The updated expense data</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Amount,Date,CategoryId")] Expense expense)
@@ -206,7 +209,10 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // GET: Expenses/Delete/5
+        /// <summary>
+        /// Displays the expense deletion confirmation page.
+        /// </summary>
+        /// <param name="id">The ID of the expense to delete</param>
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -232,7 +238,10 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // POST: Expenses/Delete/5
+        /// <summary>
+        /// Processes the expense deletion.
+        /// </summary>
+        /// <param name="id">The ID of the expense to delete</param>
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -257,7 +266,9 @@ namespace ExpenseManager.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Expenses/Pending
+        /// <summary>
+        /// Displays a list of pending expenses for approval (manager only).
+        /// </summary>
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Pending()
         {
@@ -271,7 +282,10 @@ namespace ExpenseManager.Controllers
             return View(pendingExpenses);
         }
 
-        // GET: Expenses/Approve/5
+        /// <summary>
+        /// Displays the expense approval confirmation page.
+        /// </summary>
+        /// <param name="id">The ID of the expense to approve</param>
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Approve(int? id)
         {
@@ -298,7 +312,10 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // POST: Expenses/Approve/5
+        /// <summary>
+        /// Processes the expense approval.
+        /// </summary>
+        /// <param name="id">The ID of the expense to approve</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Manager")]
@@ -327,7 +344,10 @@ namespace ExpenseManager.Controllers
             return RedirectToAction(nameof(Pending));
         }
 
-        // GET: Expenses/Reject/5
+        /// <summary>
+        /// Displays the expense rejection form.
+        /// </summary>
+        /// <param name="id">The ID of the expense to reject</param>
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Reject(int? id)
         {
@@ -354,7 +374,11 @@ namespace ExpenseManager.Controllers
             return View(expense);
         }
 
-        // POST: Expenses/Reject/5
+        /// <summary>
+        /// Processes the expense rejection.
+        /// </summary>
+        /// <param name="id">The ID of the expense to reject</param>
+        /// <param name="rejectionReason">The reason for rejecting the expense</param>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Manager")]
@@ -384,6 +408,11 @@ namespace ExpenseManager.Controllers
             return RedirectToAction(nameof(Pending));
         }
 
+        /// <summary>
+        /// Checks if an expense with the specified ID exists.
+        /// </summary>
+        /// <param name="id">The ID to check</param>
+        /// <returns>True if the expense exists, otherwise false</returns>
         private bool ExpenseExists(int id)
         {
             return _context.Expenses.Any(e => e.Id == id);
