@@ -88,13 +88,14 @@ static async Task SeedData(WebApplication app)
         try
         {
             var context = services.GetRequiredService<ApplicationDbContext>();
-            // Ensure the database is created
+            
+            // Ensure the database is created and migrated
             await context.Database.MigrateAsync();
 
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
             var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-            // Seed roles
+            // Seed roles if they don't exist
             if (!await roleManager.RoleExistsAsync("Employee"))
             {
                 await roleManager.CreateAsync(new IdentityRole("Employee"));
@@ -104,7 +105,7 @@ static async Task SeedData(WebApplication app)
                 await roleManager.CreateAsync(new IdentityRole("Manager"));
             }
 
-            // Seed admin user
+            // Seed admin user if not exists
             var adminUser = await userManager.FindByEmailAsync("admin@example.com");
             if (adminUser == null)
             {
@@ -124,11 +125,53 @@ static async Task SeedData(WebApplication app)
                     await userManager.AddToRoleAsync(adminUser, "Manager");
                 }
             }
+
+            // Seed categories if they don't exist
+            if (!context.Categories.Any())
+            {
+                var categories = new List<Category>
+                {
+                    new Category 
+                    { 
+                        Name = "Travel", 
+                        Description = "Travel expenses including airfare, hotel, car rental",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Category 
+                    { 
+                        Name = "Meals", 
+                        Description = "Business meals and entertainment",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Category 
+                    { 
+                        Name = "Office Supplies", 
+                        Description = "Stationary, small equipment, consumables",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Category 
+                    { 
+                        Name = "Software", 
+                        Description = "Software licenses and subscriptions",
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Category 
+                    { 
+                        Name = "Training", 
+                        Description = "Courses, conferences, and educational materials",
+                        CreatedAt = DateTime.UtcNow
+                    }
+                };
+
+                context.Categories.AddRange(categories);
+                await context.SaveChangesAsync();
+            }
         }
         catch (Exception ex)
         {
             var logger = services.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "An error occurred while seeding the database.");
+            throw; // Re-throw to prevent application startup
         }
     }
 }

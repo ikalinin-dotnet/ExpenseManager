@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+#nullable disable
+
 namespace ExpenseManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
@@ -13,8 +15,7 @@ namespace ExpenseManager.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "5.0.17");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
             modelBuilder.Entity("ExpenseManager.Models.ApplicationUser", b =>
                 {
@@ -29,7 +30,6 @@ namespace ExpenseManager.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Department")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
@@ -40,11 +40,9 @@ namespace ExpenseManager.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("LockoutEnabled")
@@ -89,7 +87,7 @@ namespace ExpenseManager.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("AspNetUsers");
+                    b.ToTable("AspNetUsers", (string)null);
                 });
 
             modelBuilder.Entity("ExpenseManager.Models.Category", b =>
@@ -98,13 +96,20 @@ namespace ExpenseManager.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -115,30 +120,35 @@ namespace ExpenseManager.Migrations
                         new
                         {
                             Id = 1,
+                            CreatedAt = new DateTime(2025, 4, 7, 10, 29, 47, 728, DateTimeKind.Utc).AddTicks(1990),
                             Description = "Travel expenses including airfare, hotel, car rental",
                             Name = "Travel"
                         },
                         new
                         {
                             Id = 2,
+                            CreatedAt = new DateTime(2025, 4, 7, 10, 29, 47, 728, DateTimeKind.Utc).AddTicks(1990),
                             Description = "Business meals and entertainment",
                             Name = "Meals"
                         },
                         new
                         {
                             Id = 3,
+                            CreatedAt = new DateTime(2025, 4, 7, 10, 29, 47, 728, DateTimeKind.Utc).AddTicks(1990),
                             Description = "Stationary, small equipment, consumables",
                             Name = "Office Supplies"
                         },
                         new
                         {
                             Id = 4,
+                            CreatedAt = new DateTime(2025, 4, 7, 10, 29, 47, 728, DateTimeKind.Utc).AddTicks(1990),
                             Description = "Software licenses and subscriptions",
                             Name = "Software"
                         },
                         new
                         {
                             Id = 5,
+                            CreatedAt = new DateTime(2025, 4, 7, 10, 29, 47, 728, DateTimeKind.Utc).AddTicks(1990),
                             Description = "Courses, conferences, and educational materials",
                             Name = "Training"
                         });
@@ -167,10 +177,12 @@ namespace ExpenseManager.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RejectionReason")
                         .IsRequired()
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
@@ -222,7 +234,7 @@ namespace ExpenseManager.Migrations
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("AspNetRoles");
+                    b.ToTable("AspNetRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -245,7 +257,7 @@ namespace ExpenseManager.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims");
+                    b.ToTable("AspNetRoleClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -268,7 +280,7 @@ namespace ExpenseManager.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims");
+                    b.ToTable("AspNetUserClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -290,7 +302,7 @@ namespace ExpenseManager.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins");
+                    b.ToTable("AspNetUserLogins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -305,7 +317,7 @@ namespace ExpenseManager.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles");
+                    b.ToTable("AspNetUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -324,7 +336,7 @@ namespace ExpenseManager.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens");
+                    b.ToTable("AspNetUserTokens", (string)null);
                 });
 
             modelBuilder.Entity("ExpenseManager.Models.Expense", b =>

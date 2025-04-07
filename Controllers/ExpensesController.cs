@@ -1,4 +1,3 @@
-// Controllers/ExpensesController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +27,6 @@ namespace ExpenseManager.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isManager = User.IsInRole("Manager");
             
-            // For managers, show all expenses. For employees, only show their own
             var expenses = isManager 
                 ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
                 : _context.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
@@ -55,7 +53,6 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
 
-            // Check if user is authorized to view this expense
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isManager = User.IsInRole("Manager");
             
@@ -68,6 +65,7 @@ namespace ExpenseManager.Controllers
         }
 
         // GET: Expenses/Create
+        [HttpGet]
         public IActionResult Create()
         {
             ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name");
@@ -84,13 +82,16 @@ namespace ExpenseManager.Controllers
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 expense.UserId = userId;
                 expense.Status = ExpenseStatus.Pending;
-                expense.CreatedAt = DateTime.Now;
-                
-                _context.Add(expense);
+                expense.CreatedAt = DateTime.UtcNow;
+        
+                 _context.Add(expense);
                 await _context.SaveChangesAsync();
+        
+                TempData["SuccessMessage"] = "Expense created successfully!";
                 return RedirectToAction(nameof(Index));
             }
-            
+    
+             // If we got this far, something failed, redisplay form
             ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
             return View(expense);
         }
@@ -109,7 +110,6 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow editing if expense belongs to current user and is still pending
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (expense.UserId != userId || expense.Status != ExpenseStatus.Pending)
             {
@@ -130,14 +130,12 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
 
-            // Get the original expense to preserve fields that shouldn't change
             var originalExpense = await _context.Expenses.FindAsync(id);
             if (originalExpense == null)
             {
                 return NotFound();
             }
             
-            // Only allow editing if expense belongs to current user and is still pending
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (originalExpense.UserId != userId || originalExpense.Status != ExpenseStatus.Pending)
             {
@@ -148,16 +146,18 @@ namespace ExpenseManager.Controllers
             {
                 try
                 {
-                    // Update only the fields that should be editable
                     originalExpense.Title = expense.Title;
                     originalExpense.Description = expense.Description;
                     originalExpense.Amount = expense.Amount;
                     originalExpense.Date = expense.Date;
                     originalExpense.CategoryId = expense.CategoryId;
-                    originalExpense.UpdatedAt = DateTime.Now;
+                    originalExpense.UpdatedAt = DateTime.UtcNow;
                     
                     _context.Update(originalExpense);
                     await _context.SaveChangesAsync();
+                    
+                    TempData["SuccessMessage"] = "Expense updated successfully!";
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -170,7 +170,6 @@ namespace ExpenseManager.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
             }
             
             ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
@@ -194,7 +193,6 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow deletion if expense belongs to current user and is still pending
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (expense.UserId != userId || expense.Status != ExpenseStatus.Pending)
             {
@@ -216,7 +214,6 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow deletion if expense belongs to current user and is still pending
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (expense.UserId != userId || expense.Status != ExpenseStatus.Pending)
             {
@@ -225,6 +222,8 @@ namespace ExpenseManager.Controllers
             
             _context.Expenses.Remove(expense);
             await _context.SaveChangesAsync();
+            
+            TempData["SuccessMessage"] = "Expense deleted successfully!";
             return RedirectToAction(nameof(Index));
         }
         
@@ -261,7 +260,6 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow approval if expense is still pending
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
@@ -283,20 +281,19 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow approval if expense is still pending
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
             }
             
-            // Update expense status
             expense.Status = ExpenseStatus.Approved;
             expense.ApproverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            expense.UpdatedAt = DateTime.Now;
+            expense.UpdatedAt = DateTime.UtcNow;
             
             _context.Update(expense);
             await _context.SaveChangesAsync();
             
+            TempData["SuccessMessage"] = "Expense approved successfully!";
             return RedirectToAction(nameof(Pending));
         }
         
@@ -319,7 +316,6 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow rejection if expense is still pending
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
@@ -341,21 +337,20 @@ namespace ExpenseManager.Controllers
                 return NotFound();
             }
             
-            // Only allow rejection if expense is still pending
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
             }
             
-            // Update expense status
             expense.Status = ExpenseStatus.Rejected;
             expense.ApproverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             expense.RejectionReason = rejectionReason;
-            expense.UpdatedAt = DateTime.Now;
+            expense.UpdatedAt = DateTime.UtcNow;
             
             _context.Update(expense);
             await _context.SaveChangesAsync();
             
+            TempData["SuccessMessage"] = "Expense rejected successfully!";
             return RedirectToAction(nameof(Pending));
         }
 
