@@ -23,7 +23,6 @@
                     <form asp-action="Create">
                         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                         
-                        <!-- Add the hidden UserId field -->
                         <input type="hidden" name="UserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
                         
                         <div class="mb-3">

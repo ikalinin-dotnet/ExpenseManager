@@ -46,7 +46,6 @@ namespace ExpenseManager.Controllers
                 .Take(5)
                 .ToListAsync();
                 
-            Console.WriteLine($"Found {userExpenses.Count()} expenses for user");
             viewModel.UserExpenses = userExpenses;
             
             // Show counts for user's expenses

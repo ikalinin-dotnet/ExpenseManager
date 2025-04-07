@@ -23,25 +23,19 @@ namespace ExpenseManager.Controllers
 
         // GET: Expenses
         public async Task<IActionResult> Index()
-{
-    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    var isManager = User.IsInRole("Manager");
-    
-    // Add debug logging
-    Console.WriteLine($"Index method called. User ID: {userId}, IsManager: {isManager}");
-    
-    // For managers, show all expenses. For employees, only show their own
-    var expenses = isManager 
-        ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
-        : _context.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
-        
-    var expenseList = await expenses.OrderByDescending(e => e.CreatedAt).ToListAsync();
-    
-    // Debug logging
-    Console.WriteLine($"Found {expenseList.Count} expenses");
-    
-    return View(expenseList);
-}
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isManager = User.IsInRole("Manager");
+
+            // For managers, show all expenses. For employees, only show their own
+            var expenses = isManager
+                ? _context.Expenses.Include(e => e.Category).Include(e => e.User)
+                : _context.Expenses.Include(e => e.Category).Where(e => e.UserId == userId);
+
+            var expenseList = await expenses.OrderByDescending(e => e.CreatedAt).ToListAsync();
+
+            return View(expenseList);
+        }
 
         // GET: Expenses/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -56,7 +50,7 @@ namespace ExpenseManager.Controllers
                 .Include(e => e.User)
                 .Include(e => e.Approver)
                 .FirstOrDefaultAsync(m => m.Id == id);
-                
+
             if (expense == null)
             {
                 return NotFound();
@@ -64,7 +58,7 @@ namespace ExpenseManager.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isManager = User.IsInRole("Manager");
-            
+
             if (!isManager && expense.UserId != userId)
             {
                 return Forbid();
@@ -82,60 +76,55 @@ namespace ExpenseManager.Controllers
         }
 
         // POST: Expenses/Create
-        // POST: Expenses/Create
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,CategoryId")] Expense expense)
-{
-    Console.WriteLine("Create POST method called with modified controller");
-    Console.WriteLine($"Expense details: Title={expense.Title}, Amount={expense.Amount}, CategoryId={expense.CategoryId}");
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,CategoryId")] Expense expense)
+        {
+            // Explicitly set the UserId from the currently logged in user
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-    // Explicitly set the UserId from the currently logged in user
-    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    Console.WriteLine($"Current user ID: {userId}");
-    
-    // Manually set properties not in the form
-    expense.UserId = userId;
-    expense.Status = ExpenseStatus.Pending;
-    expense.CreatedAt = DateTime.Now;
-    
-    // Skip model validation for UserId since we're setting it manually
-    ModelState.Remove("UserId");
-    
-    if (ModelState.IsValid)
-    {
-        try 
-        {
-            Console.WriteLine("ModelState is valid, adding expense to context");
-            _context.Add(expense);
-            
-            Console.WriteLine("Saving changes to database");
-            await _context.SaveChangesAsync();
-            
-            Console.WriteLine("Expense saved successfully!");
-            return RedirectToAction(nameof(Index));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error saving expense: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            ModelState.AddModelError("", "An error occurred while saving the expense.");
-        }
-    }
-    else
-    {
-        foreach (var state in ModelState)
-        {
-            if (state.Value.Errors.Any())
+            // Manually set properties not in the form
+            expense.UserId = userId;
+            expense.Status = ExpenseStatus.Pending;
+            expense.CreatedAt = DateTime.Now;
+
+            // Skip model validation for UserId since we're setting it manually
+            ModelState.Remove("UserId");
+
+            if (ModelState.IsValid)
             {
-                Console.WriteLine($"Error in {state.Key}: {string.Join(", ", state.Value.Errors.Select(e => e.ErrorMessage))}");
+                try
+                {
+                    Console.WriteLine("ModelState is valid, adding expense to context");
+                    _context.Add(expense);
+
+                    Console.WriteLine("Saving changes to database");
+                    await _context.SaveChangesAsync();
+
+                    Console.WriteLine("Expense saved successfully!");
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving expense: {ex.Message}");
+                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                    ModelState.AddModelError("", "An error occurred while saving the expense.");
+                }
             }
+            else
+            {
+                foreach (var state in ModelState)
+                {
+                    if (state.Value.Errors.Any())
+                    {
+                        Console.WriteLine($"Error in {state.Key}: {string.Join(", ", state.Value.Errors.Select(e => e.ErrorMessage))}");
+                    }
+                }
+            }
+
+            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
+            return View(expense);
         }
-    }
-    
-    ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
-    return View(expense);
-}
 
         // GET: Expenses/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -150,13 +139,13 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
             {
                 return NotFound();
             }
-            
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (expense.UserId != userId || expense.Status != ExpenseStatus.Pending)
             {
                 return Forbid();
             }
-            
+
             ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
             return View(expense);
         }
@@ -176,7 +165,7 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
             {
                 return NotFound();
             }
-            
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (originalExpense.UserId != userId || originalExpense.Status != ExpenseStatus.Pending)
             {
@@ -193,10 +182,10 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
                     originalExpense.Date = expense.Date;
                     originalExpense.CategoryId = expense.CategoryId;
                     originalExpense.UpdatedAt = DateTime.UtcNow;
-                    
+
                     _context.Update(originalExpense);
                     await _context.SaveChangesAsync();
-                    
+
                     TempData["SuccessMessage"] = "Expense updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -212,7 +201,7 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
                     }
                 }
             }
-            
+
             ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", expense.CategoryId);
             return View(expense);
         }
@@ -228,12 +217,12 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
             var expense = await _context.Expenses
                 .Include(e => e.Category)
                 .FirstOrDefaultAsync(m => m.Id == id);
-                
+
             if (expense == null)
             {
                 return NotFound();
             }
-            
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (expense.UserId != userId || expense.Status != ExpenseStatus.Pending)
             {
@@ -249,25 +238,25 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var expense = await _context.Expenses.FindAsync(id);
-            
+
             if (expense == null)
             {
                 return NotFound();
             }
-            
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (expense.UserId != userId || expense.Status != ExpenseStatus.Pending)
             {
                 return Forbid();
             }
-            
+
             _context.Expenses.Remove(expense);
             await _context.SaveChangesAsync();
-            
+
             TempData["SuccessMessage"] = "Expense deleted successfully!";
             return RedirectToAction(nameof(Index));
         }
-        
+
         // GET: Expenses/Pending
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Pending()
@@ -278,10 +267,10 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
                 .Where(e => e.Status == ExpenseStatus.Pending)
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync();
-                
+
             return View(pendingExpenses);
         }
-        
+
         // GET: Expenses/Approve/5
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Approve(int? id)
@@ -295,12 +284,12 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
                 .Include(e => e.Category)
                 .Include(e => e.User)
                 .FirstOrDefaultAsync(m => m.Id == id);
-                
+
             if (expense == null)
             {
                 return NotFound();
             }
-            
+
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
@@ -308,7 +297,7 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
 
             return View(expense);
         }
-        
+
         // POST: Expenses/Approve/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -316,28 +305,28 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
         public async Task<IActionResult> ApproveConfirmed(int id)
         {
             var expense = await _context.Expenses.FindAsync(id);
-            
+
             if (expense == null)
             {
                 return NotFound();
             }
-            
+
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
             }
-            
+
             expense.Status = ExpenseStatus.Approved;
             expense.ApproverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             expense.UpdatedAt = DateTime.UtcNow;
-            
+
             _context.Update(expense);
             await _context.SaveChangesAsync();
-            
+
             TempData["SuccessMessage"] = "Expense approved successfully!";
             return RedirectToAction(nameof(Pending));
         }
-        
+
         // GET: Expenses/Reject/5
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Reject(int? id)
@@ -351,12 +340,12 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
                 .Include(e => e.Category)
                 .Include(e => e.User)
                 .FirstOrDefaultAsync(m => m.Id == id);
-                
+
             if (expense == null)
             {
                 return NotFound();
             }
-            
+
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
@@ -364,7 +353,7 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
 
             return View(expense);
         }
-        
+
         // POST: Expenses/Reject/5
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -372,25 +361,25 @@ public async Task<IActionResult> Create([Bind("Title,Description,Amount,Date,Cat
         public async Task<IActionResult> RejectConfirmed(int id, string rejectionReason)
         {
             var expense = await _context.Expenses.FindAsync(id);
-            
+
             if (expense == null)
             {
                 return NotFound();
             }
-            
+
             if (expense.Status != ExpenseStatus.Pending)
             {
                 return BadRequest("This expense is not pending approval.");
             }
-            
+
             expense.Status = ExpenseStatus.Rejected;
             expense.ApproverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             expense.RejectionReason = rejectionReason;
             expense.UpdatedAt = DateTime.UtcNow;
-            
+
             _context.Update(expense);
             await _context.SaveChangesAsync();
-            
+
             TempData["SuccessMessage"] = "Expense rejected successfully!";
             return RedirectToAction(nameof(Pending));
         }
