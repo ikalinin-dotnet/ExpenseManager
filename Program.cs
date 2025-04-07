@@ -2,7 +2,6 @@ using ExpenseManager.Data;
 using ExpenseManager.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,18 +16,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// Configure Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-{
-    options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredLength = 8;
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
+// Configure Identity with Fluent API
+builder.Services
+    .AddDefaultIdentity<ApplicationUser>(options =>
+    {
+        options.SignIn.RequireConfirmedAccount = false;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequiredLength = 8;
+    })
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
 // Add MVC services
 builder.Services.AddControllersWithViews();
@@ -74,55 +75,60 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 // Seed roles and admin user
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        
-        // Ensure the database is created
-        context.Database.EnsureCreated();
-
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-        // Seed roles
-        if (!await roleManager.RoleExistsAsync("Employee"))
-        {
-            await roleManager.CreateAsync(new IdentityRole("Employee"));
-        }
-        if (!await roleManager.RoleExistsAsync("Manager"))
-        {
-            await roleManager.CreateAsync(new IdentityRole("Manager"));
-        }
-
-        // Seed admin user
-        var adminUser = await userManager.FindByEmailAsync("admin@example.com");
-        if (adminUser == null)
-        {
-            adminUser = new ApplicationUser
-            {
-                UserName = "admin@example.com",
-                Email = "admin@example.com",
-                FirstName = "Admin",
-                LastName = "User",
-                Department = "Administration",
-                EmailConfirmed = true
-            };
-            
-            var result = await userManager.CreateAsync(adminUser, "Admin123!");
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(adminUser, "Manager");
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
-    }
-}
+await SeedData(app);
 
 app.Run();
+
+// Separate method for seeding data
+static async Task SeedData(WebApplication app)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            // Ensure the database is created
+            await context.Database.MigrateAsync();
+
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+            // Seed roles
+            if (!await roleManager.RoleExistsAsync("Employee"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Employee"));
+            }
+            if (!await roleManager.RoleExistsAsync("Manager"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Manager"));
+            }
+
+            // Seed admin user
+            var adminUser = await userManager.FindByEmailAsync("admin@example.com");
+            if (adminUser == null)
+            {
+                adminUser = new ApplicationUser
+                {
+                    UserName = "admin@example.com",
+                    Email = "admin@example.com",
+                    FirstName = "Admin",
+                    LastName = "User",
+                    Department = "Administration",
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, "Admin123!");
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Manager");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while seeding the database.");
+        }
+    }
+}
