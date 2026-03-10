@@ -1,0 +1,9 @@
+**/.git
+**/bin
+**/obj
+**/.vs
+**/.idea
+**/node_modules
+**/*.user
+**/*.db
+**/appsettings.Development.json
